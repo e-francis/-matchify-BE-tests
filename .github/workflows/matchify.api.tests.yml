@@ -6,45 +6,36 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  issues: write
+  contents: write
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
-      # Step 1: Checkout code
       - uses: actions/checkout@v3
 
-      # Step 2: Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
-      # Step 3: Install Dependencies
       - name: Install Dependencies
         run: |
           npm ci
           npm install -g newman newman-reporter-htmlextra allure-commandline
 
-      # Step 4: Start API Server
       - name: Start API Server
         run: |
           npm run build
           npm start &
           sleep 10
 
-      # Step 5: Set up Environment Variables
-      - name: Set up Environment Variables
-        run: |
-          echo "POSTMAN_API_URL=${{ secrets.POSTMAN_API_URL }}" >> $GITHUB_ENV
-          echo "TEST_EMAIL=${{ secrets.TEST_EMAIL }}" >> $GITHUB_ENV
-          echo "TEST_PASSCODE=${{ secrets.TEST_PASSCODE }}" >> $GITHUB_ENV
-
-      # Step 6: Create Results Directory
       - name: Create Results Directory
         run: mkdir -p test-results/allure-results
 
-      # Step 7: Run Profile Creation Tests
       - name: Run Profile Creation Tests
         run: |
           newman run ./postman/Profile_Tests.json \
@@ -55,7 +46,6 @@ jobs:
           --reporter-htmlextra-export test-results/profile-report.html \
           --export-environment ./postman/updated-env.json
 
-      # Step 8: Run Login Tests
       - name: Run Login Tests
         run: |
           newman run ./postman/Profile_Tests.json \
@@ -65,43 +55,29 @@ jobs:
           --reporter-allure-export test-results/allure-results \
           --reporter-htmlextra-export test-results/login-report.html
 
-      # Step 9: Generate Allure Report
       - name: Generate Allure Report
         if: always()
         run: allure generate test-results/allure-results --clean -o test-results/allure-report
 
-      # Step 10: Upload Test Results
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v3
         with:
           name: test-reports
-          path: |
-            test-results/*
-            test-results/allure-report/*
+          path: test-results/
 
-      # Step 11: Check Test Results
-      - name: Check Test Results
-        run: |
-          if [ $? -ne 0 ]; then
-            echo "Tests failed!"
-            exit 1
-          fi
-
-      # Step 12: Stop API Server
       - name: Stop API Server
         if: always()
         run: pkill node
 
-      # Step 13: Deploy Reports to GitHub Pages
       - name: Deploy Reports to GitHub Pages
         if: always()
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
           publish_dir: ./test-results/allure-report
 
-      # Step 14: Notify on Failure
       - name: Notify on Failure
         if: failure()
         uses: actions/github-script@v6
