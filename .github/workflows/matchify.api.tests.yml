@@ -29,7 +29,7 @@ jobs:
 
      - name: Run Profile Tests
        run: |
-         newman run ./Profile.postman_collection.json \
+         newman run Profile.postman_collection.json \
          -e ./DEV.postman_environment.json \
          --folder "TESTS/POSITIVE TESTS" \
          --folder "TESTS/NEGATIVE TESTS" \
@@ -39,7 +39,7 @@ jobs:
 
      - name: Run Auth Tests
        run: |
-         newman run ./AUTH.postman_collection.json \
+         newman run AUTH.postman_collection.json \
          -e ./updated-env.json \
          --reporters cli,htmlextra \
          --reporter-htmlextra-export test-results/login-report.html
