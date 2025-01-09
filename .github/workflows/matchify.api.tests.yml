@@ -20,13 +20,6 @@ jobs:
      - name: Create Results Directory
        run: mkdir -p test-results/allure-results
 
-     - name: List Collection Structure
-       run: |
-         echo "Profile Collection Structure:"
-         newman run Profile.postman_collection.json -e ./DEV.postman_environment.json --folder-description
-         echo "Auth Collection Structure:"
-         newman run AUTH.postman_collection.json -e ./DEV.postman_environment.json --folder-description
-
      - name: Run Profile Tests
        run: |
          newman run ./Profile.postman_collection.json \
