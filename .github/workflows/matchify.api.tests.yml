@@ -5,6 +5,7 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+  # Allow manual trigger
   workflow_dispatch:
 
 # Environment variables
@@ -16,6 +17,7 @@ jobs:
   api-tests:
     runs-on: ubuntu-latest
     
+    # Configure timeout to prevent long-running tests
     timeout-minutes: 15
 
     steps:
@@ -26,14 +28,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
 
-      - name: Install Dependencies
+      - name: Initialize npm project
         run: |
-          npm install -g newman
-          npm install -g newman-reporter-htmlextra
-          npm install -g newman-reporter-allure
-          npm install -g allure-commandline
+          npm init -y
+          npm install newman newman-reporter-htmlextra newman-reporter-allure allure-commandline --save-dev
+          npm install -g newman newman-reporter-htmlextra newman-reporter-allure allure-commandline
 
       - name: Create Results Directory
         run: |
