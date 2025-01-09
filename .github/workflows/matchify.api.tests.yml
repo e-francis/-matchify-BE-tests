@@ -23,9 +23,9 @@ jobs:
      - name: List Collection Structure
        run: |
          echo "Profile Collection Structure:"
-         newman run ./Profile.postman_collection.json -e ./DEV.postman_environment.json --folder-description
+         newman run Profile.postman_collection.json -e ./DEV.postman_environment.json --folder-description
          echo "Auth Collection Structure:"
-         newman run ./AUTH.postman_collection.json -e ./DEV.postman_environment.json --folder-description
+         newman run AUTH.postman_collection.json -e ./DEV.postman_environment.json --folder-description
 
      - name: Run Profile Tests
        run: |
