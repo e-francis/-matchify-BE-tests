@@ -1,37 +1,21 @@
 name: Matchify API Tests
-
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-
 permissions:
   issues: write
   contents: write
-
 jobs:
   test:
     runs-on: ubuntu-22.04
-
     steps:
       - uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: Install Dependencies
+      
+      - name: Install Newman
         run: |
-          npm install
           npm install -g newman newman-reporter-htmlextra allure-commandline
-
-      - name: Start API Server
-        run: |
-          npm run build
-          npm start &
-          sleep 10
 
       - name: Create Results Directory
         run: mkdir -p test-results/allure-results
@@ -39,17 +23,17 @@ jobs:
       - name: Run Profile Creation Tests
         run: |
           newman run ./Profile.postman_collection.json \
-          -e ./postman/environment.json \
+          -e ./DEV.postman_environment.json \
           --folder "Profile Creation Tests" \
           --reporters cli,htmlextra,allure \
           --reporter-allure-export test-results/allure-results \
           --reporter-htmlextra-export test-results/profile-report.html \
-          --export-environment ./postman/updated-env.json
+          --export-environment ./updated-env.json
 
       - name: Run Login Tests
         run: |
           newman run ./AUTH.postman_collection.json \
-          -e ./postman/updated-env.json \
+          -e ./updated-env.json \
           --folder "Login Tests" \
           --reporters cli,htmlextra,allure \
           --reporter-allure-export test-results/allure-results \
@@ -65,10 +49,6 @@ jobs:
         with:
           name: test-reports
           path: test-results/
-
-      - name: Stop API Server
-        if: always()
-        run: pkill node
 
       - name: Deploy Reports to GitHub Pages
         if: always()
