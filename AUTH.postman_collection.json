@@ -1,0 +1,690 @@
+{
+	"info": {
+		"_postman_id": "d4c66398-394c-4183-a688-b2424be086d0",
+		"name": "AUTH",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "20082824"
+	},
+	"item": [
+		{
+			"name": "TESTS",
+			"item": [
+				{
+					"name": "POSITIVE TESTS",
+					"item": [
+						{
+							"name": "VALID_LOGIN",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Content-Type header is application/json\", function () {",
+											"    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+											"});",
+											"",
+											"pm.test(\"Response status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Verify Response body has the required fields\", function () {",
+											"    const responseData = pm.response.json();",
+											"",
+											"    pm.expect(responseData).to.be.an('object');",
+											"    pm.expect(responseData).to.have.property('success');",
+											"    pm.expect(responseData).to.have.property('message');",
+											"    pm.expect(responseData).to.have.property('user');",
+											"});",
+											"",
+											"pm.test(\"Verify response body object is valid\", function () {",
+											"    const responseData = pm.response.json();",
+											"",
+											"    pm.expect(responseData.user).to.be.an('object');",
+											"    pm.expect(responseData.user.email).to.be.a('string');",
+											"    pm.expect(responseData.user.firstName).to.be.a('string');",
+											"    pm.expect(responseData.user.lastName).to.be.a('string');",
+											"    pm.expect(responseData.user.profilePicture).to.be.a('string');",
+											"    pm.expect(responseData.user.location).to.be.a('string');",
+											"    pm.expect(responseData.user.interests).to.be.an('array');",
+											"});",
+											"",
+											"pm.test(\"Response indicates successful login for valid input\", function () {",
+											"    const responseData = pm.response.json();",
+											"    pm.expect(responseData.success).to.be.true;",
+											"    pm.expect(responseData.message).to.equal(\"Login successful\");",
+											"    pm.expect(responseData.user).to.be.an('object');",
+											"});",
+											"pm.test(\"Verify Response Body User object exists and its variables are not empty\", function () {",
+											"    const responseData = pm.response.json();",
+											"",
+											"    const user = responseData.user;",
+											"    pm.expect(user.email).to.not.be.empty;",
+											"    pm.expect(user.firstName).to.not.be.empty;",
+											"    pm.expect(user.lastName).to.not.be.empty;",
+											"    pm.expect(user.profilePicture).to.not.be.empty;",
+											"    pm.expect(user.location).to.not.be.empty;",
+											"    pm.expect(user.interests).to.be.an('array');",
+											"});",
+											"pm.test(\"verify Each key in the user object is present in the response body\", function () {",
+											"    const expectedKeys = ['email', 'firstName', 'lastName', 'profilePicture', 'location', 'interests'];",
+											"    const responseData = pm.response.json();",
+											"    const user = responseData.user;",
+											"",
+											"    expectedKeys.forEach((key) => {",
+											"        pm.expect(user).to.have.property(key);",
+											"    });",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"{{email}}\",\n    \"passcode\": \"{{passcode}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/auth/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"auth",
+										"login"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "NEGATIVE TESTS",
+					"item": [
+						{
+							"name": "Login - First Failed Login Attempt Before Attempt Reset",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Failed Login Response\", () => {",
+											"    const response = pm.response.json();",
+											"    pm.response.to.have.status(401);",
+											"    pm.expect(response.success).to.be.false;",
+											"    pm.expect(response.message).to.equal(\"Invalid credentials. 2 attempts remaining\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"{{email}}\",\n    \"passcode\": \"999999\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/auth/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"auth",
+										"login"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Login - Reset After Successful Attempt",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Verify Successful Login Response\", () => {",
+											"    pm.response.to.have.status(200);",
+											"    const response = pm.response.json();",
+											"    pm.expect(response.success).to.be.true;",
+											"    pm.expect(response.message).to.equal(\"Login successful\");",
+											"    pm.expect(response.user).to.exist;",
+											"    ",
+											"    const { user } = response;",
+											"    const expectedKeys = ['email', 'firstName', 'lastName', 'profilePicture', 'location', 'interests'];",
+											"    expectedKeys.forEach(key => {",
+											"        pm.expect(user).to.have.property(key);",
+											"    });",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"{{email}}\",\n    \"passcode\": \"{{passcode}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/auth/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"auth",
+										"login"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Login - First Failed Attempt",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"First failed attempt message\", () => {",
+											"    const response = pm.response.json();",
+											"    pm.response.to.have.status(401);",
+											"    pm.expect(response.success).to.be.false;",
+											"    pm.expect(response.message).to.include(\"Invalid credentials. 2 attempts remaining\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"{{email}}\",\n    \"passcode\": \"999999\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/auth/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"auth",
+										"login"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Login - Second Failed Attempt",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Second failed attempt message\", () => {",
+											"    const response = pm.response.json();",
+											"    pm.response.to.have.status(401);",
+											"    pm.expect(response.success).to.be.false;",
+											"    pm.expect(response.message).to.include(\"Invalid credentials. 1 attempts remaining\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"{{email}}\",\n    \"passcode\": \"999999\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/auth/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"auth",
+										"login"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Login - Third Failed Attempt",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Third failed attempt message\", () => {",
+											"    const response = pm.response.json();",
+											"    pm.response.to.have.status(401);",
+											"    pm.expect(response.success).to.be.false;",
+											"    pm.expect(response.message).to.include(\"Invalid credentials. 0 attempts remaining\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"{{email}}\",\n    \"passcode\": \"999999\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/auth/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"auth",
+										"login"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Login - Account Locked",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Account locked message\", () => {",
+											"    const response = pm.response.json();",
+											"    pm.response.to.have.status(423);",
+											"    pm.expect(response.success).to.be.false;",
+											"    pm.expect(response.message).to.include(\"Account locked due to too many failed attempts\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"{{email}}\",\n    \"passcode\": \"999999\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/auth/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"auth",
+										"login"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Login - Non-existent account",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Non-existent account login\", () => {",
+											"   const response = pm.response.json();",
+											"   pm.response.to.have.status(404);",
+											"   pm.expect(response.success).to.be.false;",
+											"   pm.expect(response.message).to.equal(\"Account does not exist\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"nonexistent@email.com\",\n    \"passcode\": 123456\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/auth/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"auth",
+										"login"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Login - Empty Request Body",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Empty request body\", () => {",
+											"   const response = pm.response.json();",
+											"    pm.response.to.have.status(400);",
+											"   pm.expect(response.success).to.be.false;",
+											"   pm.expect(response.message).to.equal(\"Request body is empty\");",
+											"   pm.expect(response.errors).to.include(\"Request body is empty\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/auth/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"auth",
+										"login"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Login - Empty Request Body Variables",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Empty email and passcode\", () => {",
+											"    const response = pm.response.json();",
+											"    pm.response.to.have.status(400);",
+											"    pm.expect(response.success).to.be.false;",
+											"    pm.expect(response.errors).to.include(\"Email is empty\");",
+											"    pm.expect(response.errors).to.include(\"Passcode is empty\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"\",\n    \"passcode\": \"\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/auth/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"auth",
+										"login"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Login - Empty Request Body Passcode Variable",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Empty passcode\", () => {",
+											"    const response = pm.response.json();",
+											"    pm.response.to.have.status(400);",
+											"    pm.expect(response.success).to.be.false;",
+											"    pm.expect(response.errors).to.include(\"Passcode is empty\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"{{email}}\",\n    \"passcode\": \"\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/auth/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"auth",
+										"login"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Login - Empty Request Body Email Variable",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Empty Email\", () => {",
+											"    const response = pm.response.json();",
+											"    pm.response.to.have.status(400);",
+											"    pm.expect(response.success).to.be.false;",
+											"    pm.expect(response.errors).to.include(\"Email is empty\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"\",\n    \"passcode\": 123456\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/auth/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"auth",
+										"login"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"{{email}}\",\n    \"passcode\": \"{{passcode}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/login",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"auth",
+						"login"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
