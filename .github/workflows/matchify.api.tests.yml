@@ -1,71 +1,76 @@
 name: Matchify API Tests
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+ push:
+   branches: [main]
+ pull_request:
+   branches: [main]
 permissions:
-  issues: write
-  contents: write
+ issues: write
+ contents: write
 jobs:
-  test:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Install Newman
-        run: |
-          npm install -g newman newman-reporter-htmlextra allure-commandline
+ test:
+   runs-on: ubuntu-22.04
+   steps:
+     - uses: actions/checkout@v3
+     
+     - name: Install Newman
+       run: |
+         npm install -g newman newman-reporter-htmlextra allure-commandline
 
-      - name: Create Results Directory
-        run: mkdir -p test-results/allure-results
+     - name: Create Results Directory
+       run: mkdir -p test-results/allure-results
 
-      - name: Run Profile Creation Tests
-        run: |
-          newman run ./Profile.postman_collection.json \
-          -e ./DEV.postman_environment.json \
-          --folder "Profile Creation Tests" \
-          --reporters cli,htmlextra,allure \
-          --reporter-allure-export test-results/allure-results \
-          --reporter-htmlextra-export test-results/profile-report.html \
-          --export-environment ./updated-env.json
+     - name: List Collection Structure
+       run: |
+         echo "Profile Collection Structure:"
+         newman run ./Profile.postman_collection.json -e ./DEV.postman_environment.json --folder-description
+         echo "Auth Collection Structure:"
+         newman run ./AUTH.postman_collection.json -e ./DEV.postman_environment.json --folder-description
 
-      - name: Run Login Tests
-        run: |
-          newman run ./AUTH.postman_collection.json \
-          -e ./updated-env.json \
-          --folder "Login Tests" \
-          --reporters cli,htmlextra,allure \
-          --reporter-allure-export test-results/allure-results \
-          --reporter-htmlextra-export test-results/login-report.html
+     - name: Run Profile Tests
+       run: |
+         newman run ./Profile.postman_collection.json \
+         -e ./DEV.postman_environment.json \
+         --reporters cli,htmlextra,allure \
+         --reporter-allure-export test-results/allure-results \
+         --reporter-htmlextra-export test-results/profile-report.html \
+         --export-environment ./updated-env.json
 
-      - name: Generate Allure Report
-        if: always()
-        run: allure generate test-results/allure-results --clean -o test-results/allure-report
+     - name: Run Auth Tests
+       run: |
+         newman run ./AUTH.postman_collection.json \
+         -e ./updated-env.json \
+         --reporters cli,htmlextra,allure \
+         --reporter-allure-export test-results/allure-results \
+         --reporter-htmlextra-export test-results/login-report.html
 
-      - name: Upload Test Results
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: test-reports
-          path: test-results/
+     - name: Generate Allure Report
+       if: always()
+       run: allure generate test-results/allure-results --clean -o test-results/allure-report
 
-      - name: Deploy Reports to GitHub Pages
-        if: always()
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: ./test-results/allure-report
+     - name: Upload Test Results
+       if: always()
+       uses: actions/upload-artifact@v3
+       with:
+         name: test-reports
+         path: test-results/
 
-      - name: Notify on Failure
-        if: failure()
-        uses: actions/github-script@v6
-        with:
-          script: |
-            github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: 'API Tests Failed',
-              body: 'API tests failed in workflow. Check the action logs for details.'
-            })
+     - name: Deploy Reports to GitHub Pages
+       if: always()
+       uses: peaceiris/actions-gh-pages@v3
+       with:
+         github_token: ${{ secrets.GITHUB_TOKEN }}
+         publish_branch: gh-pages
+         publish_dir: ./test-results/allure-report
+
+     - name: Notify on Failure
+       if: failure()
+       uses: actions/github-script@v6
+       with:
+         script: |
+           github.rest.issues.create({
+             owner: context.repo.owner,
+             repo: context.repo.repo,
+             title: 'API Tests Failed',
+             body: 'API tests failed in workflow. Check the action logs for details.'
+           })
