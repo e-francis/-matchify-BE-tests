@@ -1,91 +1,126 @@
-name: API Integration Tests
+name: API Test and Deploy
 
 on:
   push:
-    branches: [ main, develop ]
+    branches:
+      - main
   pull_request:
-    branches: [ main, develop ]
-  workflow_dispatch:
-
-env:
-  BASE_URL: 'https://macthify-be.vercel.app/v1/api'
-  NODE_VERSION: '18'
+    branches:
+      - main
 
 jobs:
-  api-tests:
+  run-api-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '22'
 
-      - name: Install Newman and Reporters
+      - name: Install Newman
+        run: npm install -g newman newman-reporter-htmlextra
+
+      - name: Create AUTH Postman collection
         run: |
-          npm install -g newman
-          npm install -g newman-reporter-htmlextra
-          npm install -g newman-reporter-allure
-          npm install -g allure-commandline
+          echo '{
+            "info": {
+              "name": "Auth API Test",
+              "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+            },
+            "item": [
+              {
+                "name": "Login Test",
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    { "key": "Content-Type", "value": "application/json" }
+                  ],
+                  "url": "https://macthify-be.vercel.app/v1/api/auth/login",
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\"email\": \"test@example.com\", \"password\": \"password123\"}"
+                  }
+                },
+                "response": []
+              }
+            ]
+          }' > auth_collection.json
 
-      - name: Create Results Directory
+      - name: Create Profile Postman collection
         run: |
-          mkdir -p test-results/newman
-          mkdir -p test-results/allure-results
+          echo '{
+            "info": {
+              "name": "Profile API Test",
+              "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+            },
+            "item": [
+              {
+                "name": "Create Profile Test",
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    { "key": "Content-Type", "value": "application/json" }
+                  ],
+                  "url": "https://macthify-be.vercel.app/v1/api/create-profile",
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\"username\": \"testuser\", \"bio\": \"This is a test bio.\"}"
+                  }
+                },
+                "response": []
+              }
+            ]
+          }' > profile_collection.json
 
-      - name: Update Environment File
+      - name: Run AUTH API tests with Newman
         run: |
-          # Update base_url in the existing environment file
-          jq '.values += [{"key": "base_url", "value": "${{ env.BASE_URL }}", "enabled": true}]' DEV.postman_environment.json > updated_environment.json
-          mv updated_environment.json DEV.postman_environment.json
+          newman run auth_collection.json \
+            -r cli,htmlextra \
+            --reporter-htmlextra-export auth-test-report.html
 
-      - name: Run Profile API Tests
+      - name: Run Profile API tests with Newman
         run: |
-          newman run Profile.postman_collection.json \
-            -e DEV.postman_environment.json \
-            --folder "TESTS/POSITIVE TESTS" \
-            --folder "TESTS/NEGATIVE TESTS" \
-            --reporters cli,htmlextra,allure \
-            --reporter-htmlextra-export test-results/newman/profile-tests.html \
-            --reporter-allure-export test-results/allure-results
+          newman run profile_collection.json \
+            -r cli,htmlextra \
+            --reporter-htmlextra-export profile-test-report.html
 
-      - name: Run Auth API Tests
-        run: |
-          newman run AUTH.postman_collection.json \
-            -e DEV.postman_environment.json \
-            --reporters cli,htmlextra,allure \
-            --reporter-htmlextra-export test-results/newman/auth-tests.html \
-            --reporter-allure-export test-results/allure-results
-
-      - name: Generate Allure Report
-        if: always()
-        run: |
-          allure generate test-results/allure-results --clean -o test-results/allure-report
-
-      - name: Upload Newman HTML Report
-        if: always()
-        uses: actions/upload-artifact@v4
+      - name: Upload AUTH test report artifact
+        uses: actions/upload-artifact@v3
         with:
-          name: newman-html-report
-          path: test-results/newman/
-          retention-days: 30
+          name: auth-api-test-report
+          path: auth-test-report.html
 
-      - name: Upload Allure Report
-        if: always()
-        uses: actions/upload-artifact@v4
+      - name: Upload Profile test report artifact
+        uses: actions/upload-artifact@v3
         with:
-          name: allure-report
-          path: test-results/allure-report/
-          retention-days: 30
+          name: profile-api-test-report
+          path: profile-test-report.html
 
-      - name: Deploy Allure Report to GitHub Pages
-        if: always() && github.ref == 'refs/heads/main'
+  deploy-report:
+    needs: run-api-tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download AUTH test report artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: auth-api-test-report
+
+      - name: Download Profile test report artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: profile-api-test-report
+
+      - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
           publish_branch: gh-pages
-          publish_dir: ./test-results/allure-report
