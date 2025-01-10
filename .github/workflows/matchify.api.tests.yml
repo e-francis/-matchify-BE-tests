@@ -24,32 +24,6 @@ jobs:
       - name: Install Newman
         run: npm install -g newman newman-reporter-htmlextra
 
-      - name: Create AUTH Postman collection
-        run: |
-          echo '{
-            "info": {
-              "name": "Auth API Test",
-              "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-            },
-            "item": [
-              {
-                "name": "Login Test",
-                "request": {
-                  "method": "POST",
-                  "header": [
-                    { "key": "Content-Type", "value": "application/json" }
-                  ],
-                  "url": "https://macthify-be.vercel.app/v1/api/auth/login",
-                  "body": {
-                    "mode": "raw",
-                    "raw": "{\"email\": \"test@example.com\", \"password\": \"password123\"}"
-                  }
-                },
-                "response": []
-              }
-            ]
-          }' > auth_collection.json
-
       - name: Create Profile Postman collection
         run: |
           echo '{
@@ -76,11 +50,31 @@ jobs:
             ]
           }' > profile_collection.json
 
-      - name: Run AUTH API tests with Newman
+      - name: Create AUTH Postman collection
         run: |
-          newman run auth_collection.json \
-            -r cli,htmlextra \
-            --reporter-htmlextra-export auth-test-report.html
+          echo '{
+            "info": {
+              "name": "Auth API Test",
+              "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+            },
+            "item": [
+              {
+                "name": "Login Test",
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    { "key": "Content-Type", "value": "application/json" }
+                  ],
+                  "url": "https://macthify-be.vercel.app/v1/api/auth/login",
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\"email\": \"test@example.com\", \"password\": \"password123\"}"
+                  }
+                },
+                "response": []
+              }
+            ]
+          }' > auth_collection.json
 
       - name: Run Profile API tests with Newman
         run: |
@@ -88,17 +82,23 @@ jobs:
             -r cli,htmlextra \
             --reporter-htmlextra-export profile-test-report.html
 
-      - name: Upload AUTH test report artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: auth-api-test-report
-          path: auth-test-report.html
+      - name: Run AUTH API tests with Newman
+        run: |
+          newman run auth_collection.json \
+            -r cli,htmlextra \
+            --reporter-htmlextra-export auth-test-report.html
 
       - name: Upload Profile test report artifact
         uses: actions/upload-artifact@v3
         with:
           name: profile-api-test-report
           path: profile-test-report.html
+
+      - name: Upload AUTH test report artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: auth-api-test-report
+          path: auth-test-report.html
 
   deploy-report:
     needs: run-api-tests
@@ -108,15 +108,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Download AUTH test report artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: auth-api-test-report
-
       - name: Download Profile test report artifact
         uses: actions/download-artifact@v3
         with:
           name: profile-api-test-report
+
+      - name: Download AUTH test report artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: auth-api-test-report
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
