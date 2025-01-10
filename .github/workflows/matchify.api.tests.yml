@@ -21,25 +21,21 @@ jobs:
 
       - name: Run Profile API tests with Newman
         run: |
+          echo "Running Profile API Tests..."
           newman run Profile.postman_collection.json \
             -e DEV.postman_environment.json \
             -r cli,htmlextra \
             --reporter-htmlextra-export profile-test-report.html \
-            --verbose > profile-detailed-log.txt 2>&1
-          
-          echo "Profile API Test Logs:"
-          cat profile-detailed-log.txt
+            --verbose 2>&1 | tee profile-detailed-log.txt
 
       - name: Run AUTH API tests with Newman
         run: |
+          echo "Running Auth API Tests..."
           newman run AUTH.postman_collection.json \
             -e DEV.postman_environment.json \
             -r cli,htmlextra \
             --reporter-htmlextra-export auth-test-report.html \
-            --verbose > auth-detailed-log.txt 2>&1
-          
-          echo "Auth API Test Logs:"
-          cat auth-detailed-log.txt
+            --verbose 2>&1 | tee auth-detailed-log.txt
 
       - name: Upload Profile test report artifact
         uses: actions/upload-artifact@v3
