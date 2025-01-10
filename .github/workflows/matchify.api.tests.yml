@@ -21,53 +21,19 @@ jobs:
         run: |
           npm install -g newman
           npm install -g newman-reporter-htmlextra
-          npm install node-jq
       
-      - name: Run Profile API Tests
+      - name: Run Profile and AUTH API Tests
         run: |
-          mkdir -p ./test-results
-          
           newman run Profile.postman_collection.json \
             -e DEV.postman_environment.json \
             -r cli,htmlextra \
             --reporter-htmlextra-export profile-test-report.html \
             --export-environment updated-env.json
-      
-      - name: Extract Credentials
-        run: |
-          node -e "
-          const fs = require('fs');
-          const jq = require('node-jq');
           
-          const envData = JSON.parse(fs.readFileSync('updated-env.json', 'utf8'));
-          
-          const email = envData.values.find(v => v.key === 'email')?.value;
-          const passcode = envData.values.find(v => v.key === 'passcode')?.value;
-          
-          if (!email || !passcode) {
-            console.error('Failed to extract email or passcode');
-            process.exit(1);
-          }
-          
-          fs.writeFileSync('credentials.json', JSON.stringify({ email, passcode }));
-          "
-      
-      - name: Run AUTH API Tests
-        run: |
-          node -e "
-          const fs = require('fs');
-          const credentials = JSON.parse(fs.readFileSync('credentials.json', 'utf8'));
-          
-          const { execSync } = require('child_process');
-          
-          execSync(`newman run AUTH.postman_collection.json \
+          newman run AUTH.postman_collection.json \
             -e DEV.postman_environment.json \
             -r cli,htmlextra \
-            --reporter-htmlextra-export auth-test-report.html \
-            --env-var email=${credentials.email} \
-            --env-var passcode=${credentials.passcode}`, 
-            { stdio: 'inherit' });
-          "
+            --reporter-htmlextra-export auth-test-report.html
       
       - name: Upload Test Reports
         uses: actions/upload-artifact@v3
