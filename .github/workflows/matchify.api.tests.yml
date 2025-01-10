@@ -9,18 +9,15 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
     steps:
-      # Checkout the repository
       - uses: actions/checkout@v3
-
-      # Setup Node.js environment
+      
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '22'
 
-      # Install Newman and HTML reporter
+      
       - name: Install dependencies
         run: |
           npm install -g newman
@@ -28,6 +25,8 @@ jobs:
 
       # Run Profile API Test and export updated environment
       - name: Run Profile API Tests (Generate Variables)
+      
+      - name: Run Profile and AUTH API Tests
         run: |
           newman run Profile.postman_collection.json \
             -e DEV.postman_environment.json \  # Use static environment
@@ -44,6 +43,13 @@ jobs:
             --reporter-htmlextra-export auth-test-report.html
 
       # Upload Test Reports for debugging
+            --export-environment updated-env.json
+          
+          newman run AUTH.postman_collection.json \
+            -e DEV.postman_environment.json \
+            -r cli,htmlextra \
+            --reporter-htmlextra-export auth-test-report.html
+      
       - name: Upload Test Reports
         uses: actions/upload-artifact@v3
         with:
