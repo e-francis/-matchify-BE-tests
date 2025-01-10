@@ -1,77 +1,43 @@
-name: API Test and Deploy
+name: API Tests
+
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
+
 jobs:
-  run-api-tests:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
       
-      - name: Set up Node.js
+      - name: Use Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '22'
       
-      - name: Install dependencies
-        run: |
-          npm install -g newman
-          npm install -g newman-reporter-htmlextra
-          npm install -g commander
-          npm install -g jq-cli
+      - name: Install Newman
+        run: npm install -g newman newman-reporter-htmlextra
       
-      - name: Run Profile API tests with Newman
+      - name: Run Profile API Tests
         run: |
           newman run Profile.postman_collection.json \
             -e DEV.postman_environment.json \
             -r cli,htmlextra \
-            --reporter-htmlextra-export profile-test-report.html \
-            --export-environment updated-env.json
+            --reporter-htmlextra-export profile-test-report.html
       
-      - name: Extract Generated Credentials
-        id: extract-creds
-        run: |
-          GENERATED_EMAIL=$(jq -r '.values[] | select(.key=="email") | .value' updated-env.json)
-          GENERATED_PASSCODE=$(jq -r '.values[] | select(.key=="passcode") | .value' updated-env.json)
-          
-          echo "GENERATED_EMAIL=$GENERATED_EMAIL" >> $GITHUB_ENV
-          echo "GENERATED_PASSCODE=$GENERATED_PASSCODE" >> $GITHUB_ENV
-      
-      - name: Run AUTH API tests
+      - name: Run AUTH API Tests
         run: |
           newman run AUTH.postman_collection.json \
-            -e updated-env.json \
+            -e DEV.postman_environment.json \
             -r cli,htmlextra \
             --reporter-htmlextra-export auth-test-report.html
       
-      - name: Upload test reports
+      - name: Upload Test Reports
         uses: actions/upload-artifact@v3
         with:
-          name: test-reports
+          name: api-test-reports
           path: |
             profile-test-report.html
             auth-test-report.html
-  
-  deploy-report:
-    needs: run-api-tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      
-      - name: Download test reports
-        uses: actions/download-artifact@v3
-        with:
-          name: test-reports
-      
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./
-          publish_branch: gh-pages
