@@ -1,47 +1,87 @@
-# API Test Documentation
+# Machify API Test Documentation
 
 ## Overview
-Automated API tests for Profile Creation and Login endpoints using Postman, Newman, and Allure reporting.
+
+Automated API tests for **Profile Creation** and **Login** endpoints using **Postman**, **Newman**, and **HTML Extra Reporting**.
 
 ## Test Reports Location
-- **GitHub Actions Artifacts**: 
- - `test-reports/allure-report/`: Allure test reports
- - `test-reports/profile-report.html`: Profile creation test results
- - `test-reports/login-report.html`: Login test results
 
-- **GitHub Pages**:
- - Allure reports automatically deployed to: `https://{username}.github.io/{repo-name}`
+- **GitHub Actions Artifacts**:
+  - `api-test-reports/profile-test-report.html`: Profile creation test results
+  - `api-test-reports/auth-test-report.html`: Login test results
+  - `updated-environment/updated-env.json`: Exported environment variables from tests
 
 ## Accessing Reports
-1. **GitHub Actions**:
-  - Go to Actions tab
-  - Select workflow run
-  - Download artifacts from "Artifacts" section
 
-2. **GitHub Pages**:
-  - Access published Allure report via GitHub Pages URL
-  - Report updates on every workflow run
+1. **GitHub Actions**:
+   - Navigate to the **Actions** tab in the repository.
+   - Select the relevant workflow run.
+   - Download the test reports from the **Artifacts** section.
 
 ## Report Features
+
 - Test execution summary
-- Failed test details
-- Response validations
+- Failed test details with response validation
 - Environment details
-- Timeline view
-- Trends analysis
+- Interactive HTML reports with enhanced visuals
 
 ## CI/CD Pipeline
-Automated test execution and reporting on:
-- Push to main
-- Pull requests
-- Manual workflow dispatch
 
-## Environment Setup
-Required secrets in GitHub:
-```json
-{
- "POSTMAN_API_URL": "API base URL",
- "TEST_EMAIL": "Test email",
- "TEST_PASSCODE": "Test passcode",
- "GITHUB_TOKEN": "For GitHub Pages deployment"
-}
+Automated test execution and reporting occur on:
+
+- **Push** to the `main` branch
+- **Pull requests** to the `main` branch
+
+## Test Coverage
+
+### Profile API Tests (`Profile.postman_collection.json`)
+
+- **Positive Tests:**
+
+  - Successful Profile Creation
+
+- **Negative Tests:**
+
+  - Empty Request Body
+  - Missing Required Fields
+  - Invalid Passcode
+  - Invalid Picture Upload
+  - More than 5 Interests
+  - Invalid Gender Value
+  - Future Date of Birth (DOB)
+  - Invalid Email Format
+  - Invalid Date Format
+  - Underage Registration
+
+### Auth API Tests (`AUTH.postman_collection.json`)
+
+- **Valid Login Tests:**
+
+  - Successful Login
+
+- **Negative Login Tests:**
+
+  - First Failed Login Attempt Before Attempt Reset
+  - Reset After Successful Attempt
+  - First Failed Attempt
+  - Second Failed Attempt
+  - Third Failed Attempt
+  - Account Locked
+  - Login with Non-existent Account
+  - Empty Request Body
+  - Empty Request Body Variables
+  - Empty Request Body Passcode Variable
+  - Empty Request Body Email Variable
+
+
+## CI/CD Workflow Overview
+
+1. **Install Dependencies:** Newman and the HTML Extra reporter are installed.
+2. **Run Profile API Tests:** Executes profile tests and exports dynamic environment variables.
+3. **Run Auth API Tests:** Uses updated environment variables for login tests.
+4. **Upload Reports:** Test reports and updated environment files are uploaded as GitHub Action artifacts.
+
+---
+
+This workflow ensures consistent and automated API testing with dynamic data handling across Profile and Auth endpoints.
+
