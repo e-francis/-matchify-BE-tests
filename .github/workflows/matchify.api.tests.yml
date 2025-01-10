@@ -30,16 +30,16 @@ jobs:
       - name: Run Profile API Tests (Generate Variables)
         run: |
           newman run Profile.postman_collection.json \
-            -e DEV.postman_environment.json \  # Use static environment
+            -e DEV.postman_environment.json \
             -r cli,htmlextra \
             --reporter-htmlextra-export profile-test-report.html \
-            --export-environment updated-env.json  # Export dynamic vars
+            --export-environment updated-env.json
 
       # Run Auth API Test using updated environment
       - name: Run Auth API Tests (Reuse Variables)
         run: |
           newman run AUTH.postman_collection.json \
-            -e updated-env.json \  # Use updated environment
+            -e updated-env.json \
             -r cli,htmlextra \
             --reporter-htmlextra-export auth-test-report.html
 
