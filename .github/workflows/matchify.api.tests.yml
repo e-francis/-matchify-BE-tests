@@ -12,12 +12,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '22'
-
       - name: Install Newman
         run: npm install -g newman newman-reporter-htmlextra
 
@@ -26,26 +24,38 @@ jobs:
           newman run Profile.postman_collection.json \
             -e DEV.postman_environment.json \
             -r cli,htmlextra \
-            --reporter-htmlextra-export profile-test-report.html
+            --reporter-htmlextra-export profile-test-report.html \
+            --verbose > profile-detailed-log.txt 2>&1
+          
+          echo "Profile API Test Logs:"
+          cat profile-detailed-log.txt
 
       - name: Run AUTH API tests with Newman
         run: |
           newman run AUTH.postman_collection.json \
             -e DEV.postman_environment.json \
             -r cli,htmlextra \
-            --reporter-htmlextra-export auth-test-report.html
+            --reporter-htmlextra-export auth-test-report.html \
+            --verbose > auth-detailed-log.txt 2>&1
+          
+          echo "Auth API Test Logs:"
+          cat auth-detailed-log.txt
 
       - name: Upload Profile test report artifact
         uses: actions/upload-artifact@v3
         with:
           name: profile-api-test-report
-          path: profile-test-report.html
+          path: |
+            profile-test-report.html
+            profile-detailed-log.txt
 
       - name: Upload AUTH test report artifact
         uses: actions/upload-artifact@v3
         with:
           name: auth-api-test-report
-          path: auth-test-report.html
+          path: |
+            auth-test-report.html
+            auth-detailed-log.txt
 
   deploy-report:
     needs: run-api-tests
@@ -53,17 +63,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
       - name: Download Profile test report artifact
         uses: actions/download-artifact@v3
         with:
           name: profile-api-test-report
-
       - name: Download AUTH test report artifact
         uses: actions/download-artifact@v3
         with:
           name: auth-api-test-report
-
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
