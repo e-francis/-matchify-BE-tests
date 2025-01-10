@@ -9,72 +9,95 @@ on:
 jobs:
   run-api-tests:
     runs-on: ubuntu-latest
+    env:
+      NODE_ENV: development
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
+      
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '22'
-
-      - name: Install Newman
+      
+      - name: Install Newman and dependencies
         run: |
           npm install -g newman
           npm install -g newman-reporter-htmlextra
-
+          npm install -g jq
+      
       - name: Run Profile API tests with Newman
         id: profile-tests
+        if: success()
         run: |
+          # Run Profile tests
           newman run Profile.postman_collection.json \
             -e DEV.postman_environment.json \
             -r cli,htmlextra \
             --reporter-htmlextra-export profile-test-report.html \
             --export-environment updated-env.json
           
-          # Extract and log the credentials for verification
-          echo "Generated email: $(jq -r '.values[] | select(.key=="email") | .value' updated-env.json)"
-          echo "Generated passcode: $(jq -r '.values[] | select(.key=="passcode") | .value' updated-env.json)"
-
+          # Extract generated email and passcode
+          GENERATED_EMAIL=$(jq -r '.values[] | select(.key=="email") | .value' updated-env.json)
+          GENERATED_PASSCODE=$(jq -r '.values[] | select(.key=="passcode") | .value' updated-env.json)
+          
+          # Set extracted values as environment variables
+          echo "GENERATED_EMAIL=$GENERATED_EMAIL" >> $GITHUB_ENV
+          echo "GENERATED_PASSCODE=$GENERATED_PASSCODE" >> $GITHUB_ENV
+          
+          # Print values for verification (remove in production)
+          echo "Generated Email: $GENERATED_EMAIL"
+          echo "Generated Passcode: $GENERATED_PASSCODE"
+      
       - name: Run AUTH API tests with Newman
         if: success()
+        env:
+          # Pass the generated email and passcode to AUTH tests
+          POSTMAN_EMAIL: ${{ env.GENERATED_EMAIL }}
+          POSTMAN_PASSCODE: ${{ env.GENERATED_PASSCODE }}
         run: |
+          # Update environment file with generated credentials
+          jq --arg email "$POSTMAN_EMAIL" --arg passcode "$POSTMAN_PASSCODE" \
+            '.values += [{"key": "email", "value": $email}, {"key": "passcode", "value": $passcode}]' \
+            updated-env.json > updated-auth-env.json
+          
+          # Run AUTH tests using updated environment
           newman run AUTH.postman_collection.json \
-            -e updated-env.json \
+            -e updated-auth-env.json \
             -r cli,htmlextra \
             --reporter-htmlextra-export auth-test-report.html
-
+      
       - name: Upload Profile test report artifact
         if: always()
         uses: actions/upload-artifact@v3
         with:
           name: profile-api-test-report
           path: profile-test-report.html
-
+      
       - name: Upload AUTH test report artifact
         if: always()
         uses: actions/upload-artifact@v3
         with:
           name: auth-api-test-report
           path: auth-test-report.html
-
+  
   deploy-report:
     needs: run-api-tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
+      
       - name: Download Profile test report artifact
         uses: actions/download-artifact@v3
         with:
           name: profile-api-test-report
-
+      
       - name: Download AUTH test report artifact
         uses: actions/download-artifact@v3
         with:
           name: auth-api-test-report
-
+      
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
