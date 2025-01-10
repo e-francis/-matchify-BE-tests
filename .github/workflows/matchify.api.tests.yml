@@ -12,46 +12,51 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '22'
+
       - name: Install Newman
-        run: npm install -g newman newman-reporter-htmlextra
+        run: |
+          npm install -g newman
+          npm install -g newman-reporter-htmlextra
 
       - name: Run Profile API tests with Newman
+        id: profile-tests
         run: |
-          echo "Running Profile API Tests..."
           newman run Profile.postman_collection.json \
             -e DEV.postman_environment.json \
             -r cli,htmlextra \
             --reporter-htmlextra-export profile-test-report.html \
-            --verbose 2>&1 | tee profile-detailed-log.txt
+            --export-environment updated-env.json
+          
+          # Extract and log the credentials for verification
+          echo "Generated email: $(jq -r '.values[] | select(.key=="email") | .value' updated-env.json)"
+          echo "Generated passcode: $(jq -r '.values[] | select(.key=="passcode") | .value' updated-env.json)"
 
       - name: Run AUTH API tests with Newman
+        if: success()
         run: |
-          echo "Running Auth API Tests..."
           newman run AUTH.postman_collection.json \
-            -e DEV.postman_environment.json \
+            -e updated-env.json \
             -r cli,htmlextra \
-            --reporter-htmlextra-export auth-test-report.html \
-            --verbose 2>&1 | tee auth-detailed-log.txt
+            --reporter-htmlextra-export auth-test-report.html
 
       - name: Upload Profile test report artifact
+        if: always()
         uses: actions/upload-artifact@v3
         with:
           name: profile-api-test-report
-          path: |
-            profile-test-report.html
-            profile-detailed-log.txt
+          path: profile-test-report.html
 
       - name: Upload AUTH test report artifact
+        if: always()
         uses: actions/upload-artifact@v3
         with:
           name: auth-api-test-report
-          path: |
-            auth-test-report.html
-            auth-detailed-log.txt
+          path: auth-test-report.html
 
   deploy-report:
     needs: run-api-tests
@@ -59,14 +64,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
       - name: Download Profile test report artifact
         uses: actions/download-artifact@v3
         with:
           name: profile-api-test-report
+
       - name: Download AUTH test report artifact
         uses: actions/download-artifact@v3
         with:
           name: auth-api-test-report
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
