@@ -569,15 +569,11 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:8080/v1/api/create-profile",
-					"protocol": "http",
+					"raw": "{{base_url}}/create-profile",
 					"host": [
-						"localhost"
+						"{{base_url}}"
 					],
-					"port": "8080",
 					"path": [
-						"v1",
-						"api",
 						"create-profile"
 					]
 				}
