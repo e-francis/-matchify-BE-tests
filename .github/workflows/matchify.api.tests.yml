@@ -7,11 +7,14 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
+
+env:
+  BASE_URL: 'https://macthify-be.vercel.app/v1/api'
 
 jobs:
   run-api-tests:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -19,72 +22,31 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '22'
+          node-version: '18'
 
-      - name: Install Newman
-        run: npm install -g newman newman-reporter-htmlextra
-
-      - name: Create Profile Postman collection
+      - name: Install Newman and Reporters
         run: |
-          echo '{
-            "info": {
-              "name": "Profile API Test",
-              "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-            },
-            "item": [
-              {
-                "name": "Create Profile Test",
-                "request": {
-                  "method": "POST",
-                  "header": [
-                    { "key": "Content-Type", "value": "application/json" }
-                  ],
-                  "url": "https://macthify-be.vercel.app/v1/api/create-profile",
-                  "body": {
-                    "mode": "raw",
-                    "raw": "{\"username\": \"testuser\", \"bio\": \"This is a test bio.\"}"
-                  }
-                },
-                "response": []
-              }
-            ]
-          }' > profile_collection.json
+          npm install -g newman
+          npm install -g newman-reporter-htmlextra
+          npm install -g newman-reporter-allure
 
-      - name: Create AUTH Postman collection
+      - name: Update Environment File
         run: |
-          echo '{
-            "info": {
-              "name": "Auth API Test",
-              "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-            },
-            "item": [
-              {
-                "name": "Login Test",
-                "request": {
-                  "method": "POST",
-                  "header": [
-                    { "key": "Content-Type", "value": "application/json" }
-                  ],
-                  "url": "https://macthify-be.vercel.app/v1/api/auth/login",
-                  "body": {
-                    "mode": "raw",
-                    "raw": "{\"email\": \"test@example.com\", \"password\": \"password123\"}"
-                  }
-                },
-                "response": []
-              }
-            ]
-          }' > auth_collection.json
+          jq '.values += [{"key": "base_url", "value": "${{ env.BASE_URL }}", "type": "string", "enabled": true}]' DEV.postman_environment.json > updated_env.json
 
-      - name: Run Profile API tests with Newman
+      - name: Run Profile API tests
         run: |
-          newman run profile_collection.json \
+          newman run Profile.postman_collection.json \
+            -e updated_env.json \
+            --folder "TESTS/POSITIVE TESTS" \
+            --folder "TESTS/NEGATIVE TESTS" \
             -r cli,htmlextra \
             --reporter-htmlextra-export profile-test-report.html
-
-      - name: Run AUTH API tests with Newman
+            
+      - name: Run AUTH API tests
         run: |
-          newman run auth_collection.json \
+          newman run AUTH.postman_collection.json \
+            -e updated_env.json \
             -r cli,htmlextra \
             --reporter-htmlextra-export auth-test-report.html
 
@@ -103,7 +65,6 @@ jobs:
   deploy-report:
     needs: run-api-tests
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -118,9 +79,15 @@ jobs:
         with:
           name: auth-api-test-report
 
+      - name: Create report directory
+        run: |
+          mkdir -p reports
+          mv profile-test-report.html reports/
+          mv auth-test-report.html reports/
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./
+          publish_dir: ./reports
           publish_branch: gh-pages
